@@ -11,77 +11,86 @@ Time = require 'time'
 exports.render = !->
 	pageName = Page.state.get(0)
 	return renderRankingsPage() if pageName is 'rankings'
+	return renderAddMatch() if pageName is 'addMatch'
 	renderOverview()
 
 renderOverview = !->
 	renderRankingsTop()
-	renderAddMatch()
+	renderAddMatchButton()
 	renderMatches()
 
-renderAddMatch = !->
+renderAddMatchButton = !->
 	Dom.div !->
 		Dom.style textAlign: 'center'
-		Ui.button "Add match", !->
-			p1 = Obs.create(App.userId()) # default to the user adding being one of the players
-			p2 = Obs.create()
-			result = Obs.create(1)
-			Modal.confirm tr("Add match"), (!->
-					Dom.style minWidth: '300px'
-					Dom.div !->
-						Dom.text tr("Players:")
-					Ui.item !->
-						Obs.observe !->
-							if p1.get()
-								Ui.avatar App.memberAvatar(p1.get())
-								Dom.text App.userName(p1.get())
-							else
-								Ui.avatar(0, '#ccc')
-						Dom.onTap !->
-							renderPlayerSelector p2.peek(), p1
-					Ui.item !->
-						Obs.observe !->
-							if p2.get()
-								Ui.avatar App.memberAvatar(p2.get())
-								Dom.text App.userName(p2.get())
-							else
-								Ui.avatar(0, '#ccc')
-						Dom.onTap !->
-							renderPlayerSelector p1.peek(), p2
-					Dom.div !->
-						Dom.style marginTop: '10px'
-						Dom.text tr("Result:")
-					Ui.item !->
-						Obs.observe !->
-							if result.get()?
-								if result.get() isnt 0.5
-									p = if result.get() is 1 then p1.get() else p2.get()
-									Ui.avatar App.memberAvatar p
-									Dom.text App.userName p
-								else
-									Ui.avatar(0, '#ccc')
-									Dom.text tr("It's a fuckin draw innit.")
-							else
-								Ui.avatar(0, '#ccc')
-						Dom.onTap !->
-							newResult = result.peek() ? 0
-							log 'a', newResult
-							newResult = newResult + 0.5
-							log 'b', newResult
-							if newResult > 1 then newResult = 0
-							log 'c', newResult
-							result.set newResult
-				),
-				(!-> Server.send 'addMatch', p1.get(), p2.get(), result.get())
+		Ui.button "Add match", !-> Page.nav {0: 'addMatch'}
+
+renderAddMatch = !->
+	p1 = Obs.create(App.userId()) # default to the user adding being one of the players
+	p2 = Obs.create()
+	result = Obs.create(1)
+
+	Dom.div !->
+		Dom.text tr("Players:")
+	Ui.item !->
+		Obs.observe !->
+			if p1.get()
+				Ui.avatar App.memberAvatar(p1.get())
+				Dom.text App.userName(p1.get())
+			else
+				Ui.avatar(0, '#ccc')
+		Dom.onTap !->
+			renderPlayerSelector p2.peek(), p1
+	Ui.item !->
+		Obs.observe !->
+			if p2.get()
+				Ui.avatar App.memberAvatar(p2.get())
+				Dom.text App.userName(p2.get())
+			else
+				Ui.avatar(0, '#ccc')
+		Dom.onTap !->
+			renderPlayerSelector p1.peek(), p2
+	Dom.div !->
+		Dom.style marginTop: '10px'
+		Dom.text tr("Result:")
+	Ui.item !->
+		Obs.observe !->
+			if result.get()?
+				if result.get() isnt 0.5
+					p = if result.get() is 1 then p1.get() else p2.get()
+					Ui.avatar App.memberAvatar p
+					Dom.text App.userName p
+				else
+					Ui.avatar(0, '#ccc')
+					Dom.text tr("Draw")
+			else
+				Ui.avatar(0, '#ccc')
+		Dom.onTap !->
+			newResult = (result.peek() ? 0) + 0.5
+			result.set (if newResult > 1 then 0 else newResult)
+	Dom.div !->
+		Dom.style textAlign: 'center', margin: '20px'
+		Ui.button tr("Save"), !->
+			if p1.get()
+				log '---------'
+			if p2.get()
+				log '++++'
+			if result.get()
+				log '============'
+			if p1.get()? and p2.get()? and result.get()?
+				Server.send 'addMatch', p1.get(), p2.get(), result.get()
+				Page.back()
 
 renderPlayerSelector = (unavailable, selected) !->
 	chosen = Obs.create()
 	Modal.confirm tr("Select player"), !->
 			App.users.iterate (user) !->
-				return if +user.key() is unavailable
+				return if +user.key() is +unavailable
 				Ui.item
 					avatar: user.get('avatar')
 					content: user.get('name')
-					onTap: !-> chosen.set user.key()
+					onTap: !->
+						selected.set user.key()
+						Modal.remove()
 		, !-> selected.set chosen.get()
 
 renderMatches = !->
