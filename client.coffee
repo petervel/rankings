@@ -8,10 +8,13 @@ Modal = require 'modal'
 Server = require 'server'
 Time = require 'time'
 
+DEFAULT_RANK = 1000
+
 exports.render = !->
 	pageName = Page.state.get(0)
 	return renderRankingsPage() if pageName is 'rankings'
 	return renderAddMatch() if pageName is 'addMatch'
+	return renderMatchPage(Page.state.get('matchId')) if pageName is 'match'
 	renderOverview()
 
 renderOverview = !->
@@ -23,6 +26,16 @@ renderAddMatchButton = !->
 	Dom.div !->
 		Dom.style textAlign: 'center'
 		Ui.button "Add match", !-> Page.nav {0: 'addMatch'}
+
+renderMatchPage = (matchId) !->
+	match = Db.shared.ref('matches', matchId)
+	renderMatchDetails match, true
+	if App.userIsAdmin() or App.userId() is match.get('addedBy')
+		Dom.div !->
+			Dom.style margin: '10px 0', textAlign: 'center'
+			Ui.button tr("Delete this match"), !->
+				Server.send 'deleteMatch', matchId
+				Page.back()
 
 renderAddMatch = !->
 	p1 = Obs.create(App.userId()) # default to the user adding being one of the players
@@ -69,13 +82,8 @@ renderAddMatch = !->
 			result.set (if newResult > 1 then 0 else newResult)
 	Dom.div !->
 		Dom.style textAlign: 'center', margin: '20px'
-		Ui.button tr("Save"), !->
-			if p1.get()
-				log '---------'
-			if p2.get()
-				log '++++'
-			if result.get()
-				log '============'
+		Ui.button tr("Add match"), !->
+			# TODO: check input validation
 			if p1.get()? and p2.get()? and result.get()?
 				Server.send 'addMatch', p1.get(), p2.get(), result.get()
 				Page.back()
@@ -97,40 +105,48 @@ renderMatches = !->
 	Dom.div !->
 		Dom.style height: '20px'
 	Db.shared.iterate 'matches', (match) !->
-		Ui.item !->
-			Dom.div !->
-				Dom.style width: '100%', maxWidth: '600px', margin: 'auto', position: 'relative'
+		if match.get 'deleted'
+			Ui.item !->
 				Dom.div !->
-					Dom.style Box: 'horizontal center'
-
-					Dom.div !->
-						Dom.style Flex: 1, Box: 'left middle'
-						p1 = match.get 'p1'
-						Ui.avatar App.memberAvatar(p1)
-						Dom.span !->
-							Dom.style margin: '0 10px'
-							if match.get('outcome') is 1 then Dom.style fontWeight: 'bold'
-							Dom.text App.userName p1
-						Dom.onTap !->
-							App.userInfo p1
-
-					Dom.div !->
-						Dom.style Flex: 1, Box: 'right middle'
-						p2 = match.get 'p2'
-						Dom.span !->
-							if match.get('outcome') is 0 then Dom.style fontWeight: 'bold'
-							Dom.style margin: '0 10px'
-							Dom.text App.userName p2
-						Ui.avatar App.memberAvatar(p2)
-						Dom.onTap !->
-							App.userInfo p2
-				Dom.div !->
-					Dom.div !->
-						Dom.style color: '#aaa', fontSize: '8pt', height: '10px', textAlign: 'center'
-						Time.deltaText match.get 'time'
-
-
+					Dom.style width: '100%', fontSize: '70%', color: '#aaa', textAlign: 'center', padding: '6px 0', fontStyle: 'italic'
+					Dom.text tr("deleted match")
+		else
+			renderMatchDetails match, false
 	, (match) -> -match.get 'time'
+
+
+renderMatchDetails = (match, expanded) !->
+	Ui.item !->
+		if not expanded
+			Dom.onTap !-> Page.nav {0:'match', 'matchId': match.key()}
+		Dom.div !->
+			Dom.style width: '100%', maxWidth: '600px', margin: 'auto', position: 'relative'
+			Dom.div !->
+				Dom.style Box: 'horizontal center'
+
+				Dom.div !->
+					Dom.style Flex: 1, Box: 'left middle'
+					p1 = match.get 'p1'
+					Ui.avatar App.memberAvatar(p1)
+
+					Dom.span !->
+						Dom.style margin: '0 10px'
+						if match.get('outcome') is 1 then Dom.style fontWeight: 'bold'
+						Dom.text App.userName p1
+
+				Dom.div !->
+					Dom.style Flex: 1, Box: 'right middle'
+					p2 = match.get 'p2'
+					Dom.span !->
+						if match.get('outcome') is 0 then Dom.style fontWeight: 'bold'
+						Dom.style margin: '0 10px'
+						Dom.text App.userName p2
+					Ui.avatar App.memberAvatar(p2)
+			Dom.div !->
+				Dom.style color: '#aaa', fontSize: '8pt', height: '10px', textAlign: 'center'
+				Time.deltaText match.get 'time'
+				if expanded
+					Dom.text tr(", added by %1", App.userName(match.get('addedBy')))
 
 renderRankingsTop = !->
 	# render your scoring neighbors
@@ -138,7 +154,7 @@ renderRankingsTop = !->
 		# make a sorted array of players scores
 		scoreArray = []
 		for u, v of App.users.get()
-			t = Db.shared.get('players', u, 'ranking') ? 1000
+			t = Db.shared.get('players', u, 'ranking') ? DEFAULT_RANK
 			scoreArray.push [u, t]
 		scoreArray.sort (a, b) -> b[1] - a[1]
 
@@ -184,7 +200,7 @@ renderRankingsTop = !->
 
 renderRankingsPage = !->
 	App.members.iterate (member) !->
-		score = Db.shared.get('players', member.key(), 'ranking') ? 0
+		score = Db.shared.get('players', member.key(), 'ranking') ? DEFAULT_RANK
 		matchCount = Db.shared.get('players', member.key(), 'matches') ? 0
 		Ui.item
 			avatar: member.get('avatar')
@@ -194,8 +210,7 @@ renderRankingsPage = !->
 				renderPoints(score, 40)
 			onTap: !->
 				App.showMemberInfo member.key()
-	, (member) ->
-		v for k, v of Db.shared.get('rankings', member.key())
+	, (member) -> -(Db.shared.get('players', member.key(), 'ranking') ? DEFAULT_RANK)
 
 renderPoints = (points, size, style=null) !->
 	Dom.div !->
