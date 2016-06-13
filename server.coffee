@@ -1,3 +1,8 @@
+App = require 'app'
+Db = require 'db'
+Comments = require 'comments'
+{tr} = require 'i18n'
+
 DEFAULT_RANK = 1000
 FACTOR = 32
 
@@ -17,6 +22,13 @@ exports.client_addMatch = (pid1, pid2, outcome) !->
 
 	count = Db.shared.incr 'matchId'
 	Db.shared.set 'matches', count, {time: App.time(), addedBy: App.userId(), p1: pid1, p2: pid2, outcome: outcome}
+
+	Comments.post
+		s: 'matchAdded'
+		u: App.userId()
+		lowPrio: true
+		path: ['match', count]
+		pushText: tr("match added by %1 between %2 and %3", App.userName(), App.userName(pid1), App.userName(pid2))
 
 elo = (p1, p2, outcome) !->
 	p1.ranking ?= DEFAULT_RANK

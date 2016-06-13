@@ -22,6 +22,11 @@ renderOverview = !->
 	renderAddMatchButton()
 	renderMatches()
 
+	Comments.enable
+		messages:
+			# the key is the `s` key.
+			matchAdded: (c) -> App.userName(c.u) + " added a match"
+
 renderAddMatchButton = !->
 	Dom.div !->
 		Dom.style textAlign: 'center'
