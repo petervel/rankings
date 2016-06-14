@@ -161,9 +161,9 @@ renderRankingsTop = !->
 	Ui.top !->
 		# make a sorted array of players scores
 		scoreArray = []
-		for u, v of App.users.get()
-			t = Db.shared.get('players', u, 'ranking') ? DEFAULT_RANK
-			scoreArray.push [u, t]
+		for u, v of Db.shared.get('players')
+			#t = Db.shared.get('players', u, 'ranking') ? DEFAULT_RANK
+			scoreArray.push [u, v.ranking]
 		scoreArray.sort (a, b) -> b[1] - a[1]
 
 		index = 0
@@ -203,21 +203,19 @@ renderRankingsTop = !->
 			Page.nav {0:'rankings'}
 
 renderRankingsPage = !->
-	App.members.iterate (member) !->
-		score = Db.shared.get('players', member.key(), 'ranking') ? DEFAULT_RANK
+	Db.shared.iterate 'players', (member) !->
 		matchCount = Db.shared.get('players', member.key(), 'matches') ? 0
 		Ui.item
-			avatar: member.get('avatar')
-			content: member.get('name')
+			avatar: App.members.get(member.key(), 'avatar')
+			content: App.members.get(member.key(), 'name')
 			sub: tr("%1 match|es", matchCount)
-			afterIcon: !->
-				renderPoints(score, 40)
-			onTap: !->
-				App.showMemberInfo member.key()
-	, (member) -> -(Db.shared.get('players', member.key(), 'ranking') ? DEFAULT_RANK)
+			afterIcon: !-> renderPoints member.get('ranking'), 40
+			onTap: !-> App.showMemberInfo member.key()
+	, (member) -> -member.get('ranking')
 
 renderPoints = (points, size, style=null) !->
 	Dom.div !->
+		roundedPoints = Math.round +points
 		Dom.style
 			background: '#0077CF'
 			borderRadius: '50%'
@@ -228,4 +226,4 @@ renderPoints = (points, size, style=null) !->
 			color: 'white'
 			Box: 'middle center'
 		if style then Dom.style style
-		Dom.text Math.round(+points)
+		Dom.text +roundedPoints
