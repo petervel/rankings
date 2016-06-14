@@ -20,21 +20,21 @@ exports.client_addMatch = (pid1, pid2, outcome) !->
 	players.merge pid1, p1
 	players.merge pid2, p2
 
-	count = Db.shared.incr 'matchId'
-	Db.shared.set 'matches', count, {time: App.time(), addedBy: App.userId(), p1: pid1, p2: pid2, outcome: outcome}
+	matchId = Db.shared.incr 'matchId'
+	Db.shared.set 'matches', matchId, {time: App.time(), addedBy: App.userId(), p1: pid1, p2: pid2, outcome: outcome}
 
 	Comments.post
 		s: 'matchAdded'
 		u: App.userId()
 		lowPrio: true
-		path: ['match', count]
+		path: ['match', matchId]
 		pushText: tr("match added by %1 between %2 and %3", App.userName(), App.userName(pid1), App.userName(pid2))
 
 elo = (p1, p2, outcome) !->
 	p1.ranking ?= DEFAULT_RANK
 	p2.ranking ?= DEFAULT_RANK
 	expected =  p1.ranking / (p1.ranking + p2.ranking)
-	bet = Math.round(FACTOR * (outcome - expected))
+	bet = FACTOR * (outcome - expected)
 	p1.ranking += bet
 	p2.ranking -= bet
 	p1.matches ?= 0
@@ -50,6 +50,13 @@ exports.client_deleteMatch = (matchId) !->
 	# match exists and user is allowed to delete? carry on.
 	Db.shared.set 'matches', matchId, 'deleted', true
 	recalculate()
+
+	Comments.post
+		s: 'matchDeleted'
+		u: App.userId()
+		lowPrio: true
+		path: ['match', matchId]
+		pushText: tr("match deleted by %1", App.userName())
 
 recalculate = !->
 	rs = {}

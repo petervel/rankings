@@ -25,7 +25,8 @@ renderOverview = !->
 	Comments.enable
 		messages:
 			# the key is the `s` key.
-			matchAdded: (c) -> App.userName(c.u) + " added a match"
+			matchAdded: (c) -> tr("%1 added a match", App.userName(c.u))
+			matchDeleted: (c) -> tr("%1 deleted a match", App.userName(c.u))
 
 renderAddMatchButton = !->
 	Dom.div !->
@@ -41,6 +42,8 @@ renderMatchPage = (matchId) !->
 			Ui.button tr("Delete this match"), !->
 				Server.send 'deleteMatch', matchId
 				Page.back()
+	Comments.inline
+		store: ['matches', matchId, 'comments']
 
 renderAddMatch = !->
 	p1 = Obs.create(App.userId()) # default to the user adding being one of the players
@@ -186,16 +189,12 @@ renderRankingsTop = !->
 					Dom.div !->
 
 						Dom.style overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', marginTop: '4px'
-					# Dom.span !->
+
 						if i is index
 							Dom.style color: '#000'
 						else
 							Dom.style color: '#666'
 						Dom.text (i+1) + ': ' + App.userName(scoreArray[i][0])
-					# Dom.br()
-					# Dom.span !->
-						# Dom.style color: if i is index then '#000' else '#666'
-						# Dom.text '' + scoreArray[i][1]
 		Dom.div !->
 			Dom.style padding: '8px', borderRadius: '2px', textAlign: 'center'
 			Dom.addClass 'link'
@@ -229,4 +228,4 @@ renderPoints = (points, size, style=null) !->
 			color: 'white'
 			Box: 'middle center'
 		if style then Dom.style style
-		Dom.text points
+		Dom.text Math.round(+points)
