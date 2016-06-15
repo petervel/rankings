@@ -135,15 +135,14 @@ renderMatchDetails = (match, expanded) !->
 				renderMatchContestant match.get('p1'), true, match.get('outcome')
 
 				Dom.div !->
-					Dom.style width: '130px'
+					Dom.style position: 'relative', width: '130px', overflow: 'hidden', textOverflow: 'ellipsis'
+					Dom.span !->
+						Dom.style position: 'absolute', width: '100%', bottom: '0', color: '#aaa', fontSize: '8pt', textAlign: 'center', padding: '5px', boxSizing: 'border-box'
+						Time.deltaText match.get 'time'
+						if expanded
+							Dom.text tr(", added by %1", App.userName(match.get('addedBy')))
 
 				renderMatchContestant match.get('p2'), false, match.get('outcome')
-
-			Dom.div !->
-				Dom.style color: '#aaa', fontSize: '8pt', height: '10px', textAlign: 'center'
-				Time.deltaText match.get 'time'
-				if expanded
-					Dom.text tr(", added by %1", App.userName(match.get('addedBy')))
 
 renderMatchContestant = (p, left, outcome) !->
 	Dom.div !->
