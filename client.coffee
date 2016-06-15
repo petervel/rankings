@@ -7,6 +7,10 @@ Dom = require 'dom'
 Modal = require 'modal'
 Server = require 'server'
 Time = require 'time'
+Comments = require 'comments'
+Obs = require 'obs'
+Form = require 'form'
+Icon = require 'icon'
 
 DEFAULT_RANK = 1000
 
@@ -70,31 +74,40 @@ renderAddMatch = !->
 				Ui.avatar(0, '#ccc')
 		Dom.onTap !->
 			renderPlayerSelector p1.peek(), p2
-	Dom.div !->
-		Dom.style marginTop: '10px'
-		Dom.text tr("Result:")
-	Ui.item !->
-		Obs.observe !->
-			if result.get()?
-				if result.get() isnt 0.5
-					p = if result.get() is 1 then p1.get() else p2.get()
-					Ui.avatar App.memberAvatar p
-					Dom.text App.userName p
+	Obs.observe !->
+		return unless p1.get() and p2.get() and p1.get() isnt p2.get()
+
+		Dom.div !->
+			Dom.style marginTop: '10px'
+			Dom.text tr("Result:")
+		Ui.item !->
+			Obs.observe !->
+				if result.get()?
+					if result.get() isnt 0.5
+						p = if result.get() is 1 then p1.get() else p2.get()
+						Ui.avatar App.memberAvatar p
+						Dom.text App.userName p
+					else
+						Ui.avatar(0, '#ccc')
+						Dom.text tr("Draw")
 				else
 					Ui.avatar(0, '#ccc')
-					Dom.text tr("Draw")
-			else
-				Ui.avatar(0, '#ccc')
-		Dom.onTap !->
-			newResult = (result.peek() ? 0) + 0.5
-			result.set (if newResult > 1 then 0 else newResult)
-	Dom.div !->
-		Dom.style textAlign: 'center', margin: '20px'
-		Ui.button tr("Add match"), !->
-			# TODO: check input validation
-			if p1.get()? and p2.get()? and result.get()?
-				Server.send 'addMatch', p1.get(), p2.get(), result.get()
-				Page.back()
+			Dom.onTap !->
+				newResult = (result.peek() ? 0) + 0.5
+				result.set (if newResult > 1 then 0 else newResult)
+		epic = null
+		Dom.div !->
+			Dom.style display: "#{if result.get() is 0.5 then 'none' else 'inherit'}"
+			epic = Form.check
+				text: Db.shared.get('config', 'epicDescription') ? tr("Epic win")
+
+		Dom.div !->
+			Dom.style textAlign: 'center', margin: '20px'
+			Ui.button tr("Add match"), !->
+				# TODO: input validation
+				if p1.get()? and p2.get()? and result.get()?
+					Server.send 'addMatch', p1.get(), p2.get(), result.get(), epic?.prop('checked')
+					Page.back()
 
 renderPlayerSelector = (unavailable, selected) !->
 	chosen = Obs.create()
@@ -122,7 +135,6 @@ renderMatches = !->
 			renderMatchDetails match, false
 	, (match) -> -match.get 'time'
 
-
 renderMatchDetails = (match, expanded) !->
 	Ui.item !->
 		if not expanded
@@ -132,7 +144,7 @@ renderMatchDetails = (match, expanded) !->
 			Dom.div !->
 				Dom.style Box: 'horizontal center'
 
-				renderMatchContestant match.get('p1'), true, match.get('outcome')
+				renderMatchContestant match.get('p1'), true, match.get('outcome'), match.get('epic')
 
 				Dom.div !->
 					Dom.style position: 'relative', width: '130px', overflow: 'hidden', textOverflow: 'ellipsis'
@@ -142,14 +154,14 @@ renderMatchDetails = (match, expanded) !->
 						if expanded
 							Dom.text tr(", added by %1", App.userName(match.get('addedBy')))
 
-				renderMatchContestant match.get('p2'), false, match.get('outcome')
+				renderMatchContestant match.get('p2'), false, match.get('outcome'), match.get('epic')
 
-renderMatchContestant = (p, left, outcome) !->
+renderMatchContestant = (p, left, outcome, epic) !->
 	Dom.div !->
-		Dom.style Flex: 1, Box: "#{if left then 'left' else 'right'} middle"
+		Dom.style Flex: 1, Box: "#{if left then 'left' else 'right'} middle", padding: '5px', borderRadius: '3px', border: '2px solid transparent'
 		winner = (left and outcome is 1) or (not left and outcome is 0)
 		if outcome isnt 0.5
-			Dom.style padding: '5px', borderRadius: '3px', border: "2px solid #{if winner then '#afa' else '#faa'}"
+			Dom.style border: "2px solid #{if winner then '#afa' else '#faa'}"
 
 		renderAvatar = !-> Ui.avatar App.memberAvatar(p)
 
@@ -162,10 +174,17 @@ renderMatchContestant = (p, left, outcome) !->
 		if left
 			renderAvatar()
 			renderName()
+			if winner and epic then renderEpicIcon()
 		else
+			if winner and epic then renderEpicIcon()
 			renderName()
 			renderAvatar()
 
+renderEpicIcon = !->
+	Icon.render
+		data: 'biceps'
+		size: 20
+		color: App.colors().highlight
 
 renderRankingsTop = !->
 	# render your scoring neighbors
@@ -222,7 +241,7 @@ renderRankingsPage = !->
 			sub: tr("%1 match|es", matchCount)
 			afterIcon: !-> renderPoints member.get('ranking'), 40
 			onTap: !-> App.showMemberInfo member.key()
-	, (member) -> -member.get('ranking')
+	, (member) -> -(Math.round(1000000*member.get('ranking'))) # apparently, it can't sort floats properly
 
 renderPoints = (points, size, style=null) !->
 	Dom.div !->
@@ -238,3 +257,12 @@ renderPoints = (points, size, style=null) !->
 			Box: 'middle center'
 		if style then Dom.style style
 		Dom.text +roundedPoints
+
+
+###
+exports.renderSettings = !->
+	Form.input
+		name: 'epicDescription'
+		value: Db.shared?.get('config', 'epicDescription') ? ''
+		text: 'epic victory description'
+###

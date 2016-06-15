@@ -6,7 +6,7 @@ Comments = require 'comments'
 DEFAULT_RANK = 1000
 FACTOR = 32
 
-exports.client_addMatch = (pid1, pid2, outcome) !->
+exports.client_addMatch = (pid1, pid2, outcome, epic) !->
 	if not outcome in [1, 0.5, 0] # win, draw, loss for p1
 		log "User #{App.userId()} tried to add a game with outcome #{outcome}"
 		return
@@ -21,7 +21,7 @@ exports.client_addMatch = (pid1, pid2, outcome) !->
 	players.merge pid2, p2
 
 	matchId = Db.shared.incr 'matchId'
-	Db.shared.set 'matches', matchId, {time: App.time(), addedBy: App.userId(), p1: pid1, p2: pid2, outcome: outcome}
+	Db.shared.set 'matches', matchId, {time: App.time(), addedBy: App.userId(), p1: pid1, p2: pid2, outcome: outcome, epic: epic}
 
 	Comments.post
 		s: 'matchAdded'
@@ -69,3 +69,6 @@ recalculate = !->
 
 	for u, v of rs
 		Db.shared.merge 'players', u, v
+
+exports.onConfig = (config) !->
+	Db.shared.set 'config', config
