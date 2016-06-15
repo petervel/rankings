@@ -95,18 +95,21 @@ renderAddMatch = !->
 			Dom.onTap !->
 				newResult = (result.peek() ? 0) + 0.5
 				result.set (if newResult > 1 then 0 else newResult)
-		epic = null
-		Dom.div !->
-			Dom.style display: "#{if result.get() is 0.5 then 'none' else 'inherit'}"
-			epic = Form.check
-				text: Db.shared.get('config', 'epicDescription') ? tr("Epic win")
+
+		epic = Obs.create(false)
+		if Db.shared.get('config', 'enableEpic')
+			Dom.div !->
+				Dom.style display: "#{if result.get() is 0.5 then 'none' else 'inherit'}"
+				Form.check
+					text: Db.shared.get('config', 'epicDescription') ? tr("Epic win")
+					onChange: (v) !-> epic.set v
 
 		Dom.div !->
 			Dom.style textAlign: 'center', margin: '20px'
 			Ui.button tr("Add match"), !->
 				# TODO: input validation
 				if p1.get()? and p2.get()? and result.get()?
-					Server.send 'addMatch', p1.get(), p2.get(), result.get(), epic?.prop('checked')
+					Server.send 'addMatch', p1.get(), p2.get(), result.get(), (Db.shared.get('config', 'enableEpic') and epic.get())
 					Page.back()
 
 renderPlayerSelector = (unavailable, selected) !->
@@ -174,9 +177,9 @@ renderMatchContestant = (p, left, outcome, epic) !->
 		if left
 			renderAvatar()
 			renderName()
-			if winner and epic then renderEpicIcon()
+			if Db.shared.get('config', 'enableEpic') and winner and epic then renderEpicIcon()
 		else
-			if winner and epic then renderEpicIcon()
+			if Db.shared.get('config', 'enableEpic') and winner and epic then renderEpicIcon()
 			renderName()
 			renderAvatar()
 
@@ -264,7 +267,16 @@ exports.renderSettings = !->
 		name: '_title'
 		text: tr("Rankings title (optional)")
 
-	Form.input
-		name: 'epicDescription'
-		value: Db.shared?.get('config', 'epicDescription') ? ''
-		text: 'epic victory description'
+	enableEpic = Obs.create(Db.shared?.get('config', 'enableEpic') ? false)
+	Form.check
+		name: 'enableEpic'
+		value: Db.shared?.get('config', 'enableEpic') ? false
+		text: tr("Enable epic wins")
+		onChange: (v) !-> enableEpic.set v
+
+	Obs.observe !->
+		return if not enableEpic.get()
+		Form.input
+			name: 'epicDescription'
+			value: Db.shared?.get('config', 'epicDescription') ? ''
+			text: 'epic victory description'

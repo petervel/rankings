@@ -71,4 +71,10 @@ recalculate = !->
 		Db.shared.merge 'players', u, v
 
 exports.onConfig = (config) !->
+	log config
+
+	# no description? then remove it entirely.
+	if (config.enableEpic and config.epicDescription is '')
+		config.epicDescription = null
+
 	Db.shared.set 'config', config
