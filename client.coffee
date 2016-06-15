@@ -182,7 +182,7 @@ renderMatchContestant = (p, left, outcome, epic) !->
 
 renderEpicIcon = !->
 	Icon.render
-		data: 'biceps'
+		data: 'star'
 		size: 20
 		color: App.colors().highlight
 
@@ -259,10 +259,12 @@ renderPoints = (points, size, style=null) !->
 		Dom.text +roundedPoints
 
 
-###
 exports.renderSettings = !->
+	Form.input
+		name: '_title'
+		text: tr("Rankings title (optional)")
+
 	Form.input
 		name: 'epicDescription'
 		value: Db.shared?.get('config', 'epicDescription') ? ''
 		text: 'epic victory description'
-###
