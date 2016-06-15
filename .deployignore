@@ -6,4 +6,5 @@ production.sh
 LICENSE
 *.md
 deploy
+manifest.bak
 

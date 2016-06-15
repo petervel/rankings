@@ -132,29 +132,41 @@ renderMatchDetails = (match, expanded) !->
 			Dom.div !->
 				Dom.style Box: 'horizontal center'
 
-				Dom.div !->
-					Dom.style Flex: 1, Box: 'left middle'
-					p1 = match.get 'p1'
-					Ui.avatar App.memberAvatar(p1)
-
-					Dom.span !->
-						Dom.style margin: '0 10px'
-						if match.get('outcome') is 1 then Dom.style fontWeight: 'bold'
-						Dom.text App.userName p1
+				renderMatchContestant match.get('p1'), true, match.get('outcome')
 
 				Dom.div !->
-					Dom.style Flex: 1, Box: 'right middle'
-					p2 = match.get 'p2'
-					Dom.span !->
-						if match.get('outcome') is 0 then Dom.style fontWeight: 'bold'
-						Dom.style margin: '0 10px'
-						Dom.text App.userName p2
-					Ui.avatar App.memberAvatar(p2)
+					Dom.style width: '130px'
+
+				renderMatchContestant match.get('p2'), false, match.get('outcome')
+
 			Dom.div !->
 				Dom.style color: '#aaa', fontSize: '8pt', height: '10px', textAlign: 'center'
 				Time.deltaText match.get 'time'
 				if expanded
 					Dom.text tr(", added by %1", App.userName(match.get('addedBy')))
+
+renderMatchContestant = (p, left, outcome) !->
+	Dom.div !->
+		Dom.style Flex: 1, Box: "#{if left then 'left' else 'right'} middle"
+		winner = (left and outcome is 1) or (not left and outcome is 0)
+		if outcome isnt 0.5
+			Dom.style padding: '5px', borderRadius: '3px', border: "2px solid #{if winner then '#afa' else '#faa'}"
+
+		renderAvatar = !-> Ui.avatar App.memberAvatar(p)
+
+		renderName = !->
+			Dom.span !->
+				Dom.style margin: '0 10px'
+				if winner then Dom.style fontWeight: 'bold'
+				Dom.text App.userName p
+
+		if left
+			renderAvatar()
+			renderName()
+		else
+			renderName()
+			renderAvatar()
+
 
 renderRankingsTop = !->
 	# render your scoring neighbors
@@ -219,7 +231,7 @@ renderPoints = (points, size, style=null) !->
 		Dom.style
 			background: '#0077CF'
 			borderRadius: '50%'
-			fontSize: (if points < 100 then (size*.5) else if points < 1000 then (size*.4) else (size*.3)) + 'px'
+			fontSize: (if points < 100 then (size*.5) else if roundedPoints < 1000 then (size*.4) else (size*.3)) + 'px'
 			textAlign: 'center'
 			width: size+'px'
 			height: size+'px'
