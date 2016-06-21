@@ -18,7 +18,7 @@ exports.render = !->
 	pageName = Page.state.get(0)
 	return renderRankingsPage() if pageName is 'rankings'
 	return renderAddMatch() if pageName is 'addMatch'
-	return renderMatchPage(Page.state.get('matchId')) if pageName is 'match'
+	return renderMatchPage(+pageName) if pageName
 	renderOverview()
 
 renderOverview = !->
@@ -139,55 +139,62 @@ renderMatches = !->
 	, (match) -> -match.get 'time'
 
 renderMatchDetails = (match, expanded) !->
+	if expanded
+		Dom.div !->
+			Dom.style width: '100%', color: '#aaa', fontSize: '8pt', textAlign: 'center', padding: '5px', boxSizing: 'border-box'
+			Time.deltaText match.get 'time'
+			Dom.text tr(", added by %1", App.userName(match.get('addedBy')))
+
 	Ui.item !->
 		if not expanded
-			Dom.onTap !-> Page.nav {0:'match', 'matchId': match.key()}
+			Dom.onTap !-> Page.nav {0: match.key()}
 		Dom.div !->
-			Dom.style width: '100%', maxWidth: '600px', margin: 'auto', position: 'relative'
+			Dom.style width: '90%', maxWidth: '600px', margin: 'auto', position: 'relative'
+
 			Dom.div !->
 				Dom.style Box: 'horizontal center'
-
 				renderMatchContestant match.get('p1'), true, match.get('outcome'), match.get('epic')
-
-				Dom.div !->
-					Dom.style position: 'relative', width: '130px', overflow: 'hidden', textOverflow: 'ellipsis'
-					Dom.span !->
-						Dom.style position: 'absolute', width: '100%', bottom: '0', color: '#aaa', fontSize: '8pt', textAlign: 'center', padding: '5px', boxSizing: 'border-box'
-						Time.deltaText match.get 'time'
-						if expanded
-							Dom.text tr(", added by %1", App.userName(match.get('addedBy')))
 
 				renderMatchContestant match.get('p2'), false, match.get('outcome'), match.get('epic')
 
 renderMatchContestant = (p, left, outcome, epic) !->
 	Dom.div !->
-		Dom.style Flex: 1, Box: "#{if left then 'left' else 'right'} middle", padding: '5px', borderRadius: '3px', border: '2px solid transparent'
+		Dom.style Flex: 1, Box: "#{if left then 'left' else 'right'} middle", justifyContent: 'space-between', padding: '5px', borderRadius: '3px', border: '2px solid transparent', overflow: 'hidden'
 		winner = (left and outcome is 1) or (not left and outcome is 0)
-		if outcome isnt 0.5
-			Dom.style border: "2px solid #{if winner then '#afa' else '#faa'}"
+		if outcome isnt 0.5 and winner
+			Dom.style border: '1px solid #aaa', boxShadow: '#aaa 1px 1px 10px'
 
-		renderAvatar = !-> Ui.avatar App.memberAvatar(p)
+		renderAvatar = !->
+			Dom.div !->
+				Dom.style minWidth: '40px'
+				Ui.avatar App.memberAvatar(p), {size: 40}
 
 		renderName = !->
 			Dom.span !->
-				Dom.style margin: '0 10px'
+				Dom.style margin: '0 10px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap'
 				if winner then Dom.style fontWeight: 'bold'
 				Dom.text App.userName p
 
+		renderEpicIcon = !->
+			Icon.render
+				data: 'star'
+				size: 20
+				style: padding: '10px'
+				color: App.colors().highlight
+
 		if left
-			renderAvatar()
-			renderName()
+			Dom.div !->
+				Dom.style Flex: 1, Box: 'left middle'
+				renderAvatar()
+				renderName()
 			if Db.shared.get('config', 'enableEpic') and winner and epic then renderEpicIcon()
 		else
 			if Db.shared.get('config', 'enableEpic') and winner and epic then renderEpicIcon()
-			renderName()
-			renderAvatar()
+			Dom.div !->
+				Dom.style Flex: 1, Box: 'right middle'
+				renderName()
+				renderAvatar()
 
-renderEpicIcon = !->
-	Icon.render
-		data: 'star'
-		size: 20
-		color: App.colors().highlight
 
 renderRankingsTop = !->
 	# render your scoring neighbors
