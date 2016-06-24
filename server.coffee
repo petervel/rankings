@@ -27,8 +27,8 @@ exports.client_addMatch = (pid1, pid2, outcome, epic) !->
 		s: 'matchAdded'
 		u: App.userId()
 		lowPrio: true
-		path: ['match', matchId]
-		pushText: tr("match added by %1 between %2 and %3", App.userName(), App.userName(pid1), App.userName(pid2))
+		path: [matchId]
+		pushText: tr("match added between %1 and %2", App.userName(pid1), App.userName(pid2))
 
 elo = (p1, p2, outcome) !->
 	p1.ranking ?= DEFAULT_RANK

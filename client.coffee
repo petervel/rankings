@@ -141,7 +141,7 @@ renderMatches = !->
 renderMatchDetails = (match, expanded) !->
 	if expanded
 		Dom.div !->
-			Dom.style width: '100%', color: '#aaa', fontSize: '8pt', textAlign: 'center', padding: '5px', boxSizing: 'border-box'
+			Dom.style color: '#aaa', fontSize: '8pt', textAlign: 'center', padding: '5px', boxSizing: 'border-box'
 			Time.deltaText match.get 'time'
 			Dom.text tr(", added by %1", App.userName(match.get('addedBy')))
 
@@ -179,7 +179,7 @@ renderMatchContestant = (p, left, outcome, epic) !->
 			Icon.render
 				data: 'star'
 				size: 20
-				style: padding: '10px'
+				style: padding: '10px', minWidth: '20px'
 				color: App.colors().highlight
 
 		if left
