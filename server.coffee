@@ -2,6 +2,7 @@ App = require 'app'
 Db = require 'db'
 Comments = require 'comments'
 {tr} = require 'i18n'
+Texts = require 'texts'
 
 DEFAULT_RANK = 1000
 FACTOR = 32
@@ -26,9 +27,13 @@ exports.client_addMatch = (pid1, pid2, outcome, epic) !->
 	Comments.post
 		s: 'matchAdded'
 		u: App.userId()
+		pid1: pid1
+		pid2: pid2
+		outcome: outcome
+		epic: epic
 		lowPrio: true
 		path: [matchId]
-		pushText: tr("match added between %1 and %2", App.userName(pid1), App.userName(pid2))
+		pushText: Texts.getCommentText pid1, pid2, outcome, epic
 
 elo = (p1, p2, outcome) !->
 	p1.ranking ?= DEFAULT_RANK

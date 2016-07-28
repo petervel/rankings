@@ -11,6 +11,7 @@ Comments = require 'comments'
 Obs = require 'obs'
 Form = require 'form'
 Icon = require 'icon'
+Texts = require 'texts'
 
 DEFAULT_RANK = 1000
 
@@ -29,7 +30,10 @@ renderOverview = !->
 	Comments.enable
 		messages:
 			# the key is the `s` key.
-			matchAdded: (c) -> tr("%1 added a match", App.userName(c.u))
+			matchAdded: (c) ->
+				# old comment
+				if not c.outcome? then return tr("%1 added a match", App.userName(c.u))
+				Texts.getCommentText c.pid1, c.pid2, c.outcome, c.epic
 			matchDeleted: (c) -> tr("%1 deleted a match", App.userName(c.u))
 
 renderAddMatchButton = !->
@@ -248,7 +252,7 @@ renderRankingsPage = !->
 		Ui.item
 			avatar: App.members.get(member.key(), 'avatar')
 			content: App.members.get(member.key(), 'name')
-			sub: tr("%1 match|es", matchCount)
+			sub: tr("%1 match|es", (if matchCount > 50 then "> 50" else matchCount))
 			afterIcon: !-> renderPoints member.get('ranking'), 40
 			onTap: !-> App.showMemberInfo member.key()
 	, (member) -> -(Math.round(1000000*member.get('ranking'))) # apparently, it can't sort floats properly
