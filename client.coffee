@@ -216,12 +216,12 @@ renderRankingsTop = !->
 				index = i
 				break
 		start = (Math.max(0, index-1))
-
 		Dom.style padding: "12px 4px 0px"
 		Dom.div !->
 			Dom.style
 				Box: 'middle'
 				textAlign: 'center'
+			return unless scoreArray.length
 			for i in [start..(Math.min(start+2, scoreArray.length-1))]
 				Dom.div !->
 					Dom.style Flex: 1, overflow: 'hidden'
