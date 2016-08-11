@@ -1,6 +1,6 @@
 {tr} = require 'i18n'
 
-exports.getCommentText = (pid1, pid2, outcome, epic) ->
+exports.getMatchCommentText = (pid1, pid2, outcome, epic) ->
 	epicText = if epic then tr("crushed") else tr("defeated")
 	n1 = App.userName pid1
 	n2 = App.userName pid2

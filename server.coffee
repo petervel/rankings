@@ -36,7 +36,7 @@ exports.client_addMatch = (pid1, pid2, outcome, epic) !->
 		epic: epic
 		lowPrio: true
 		path: []
-		pushText: Texts.getCommentText pid1, pid2, outcome, epic
+		pushText: Texts.getMatchCommentText pid1, pid2, outcome, epic
 
 elo = (p1, p2, outcome) !->
 	p1.ranking ?= DEFAULT_RANK
@@ -88,8 +88,17 @@ checkAchievements = (pid) !->
 						streak++
 						if streak is a.count
 							log App.userName(pid), ': ', a.name
-							player.set 'achievements', a.id, App.time()
+							completeAchievement pid, a
 							break
+
+completeAchievement = (pid, achievement) !->
+	Db.shared.set 'players', pid, 'achievements', achievement.id, App.time()
+	Comments.post
+		s: 'achievement'
+		u: pid
+		aid: achievement.id
+		path: []
+		pushText: Achievements.getNotificationText App.userName(pid), achievement
 
 exports.onUpgrade = !->
 	recalculate()

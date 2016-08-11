@@ -34,8 +34,11 @@ renderOverview = !->
 			matchAdded: (c) ->
 				# old comment
 				if not c.outcome? then return tr("%1 added a match", App.userName(c.u))
-				Texts.getCommentText c.pid1, c.pid2, c.outcome, c.epic
-			matchDeleted: (c) -> tr("%1 deleted a match", App.userName(c.u))
+				Texts.getMatchCommentText c.pid1, c.pid2, c.outcome, c.epic
+			matchDeleted: (c) ->
+				tr("%1 deleted a match", App.userName(c.u))
+			achievement: (c) ->
+				Achievements.getNotificationText App.userName(c.u), Achievements.find(c.aid)
 
 renderAddMatchButton = !->
 	Dom.div !->
