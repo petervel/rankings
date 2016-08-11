@@ -82,7 +82,6 @@ checkAchievements = (pid) !->
 		switch a.type
 			when 'streak'
 				matches = getMatchesForPlayer pid
-				log JSON.stringify matches
 				streak = 0
 				for match in matches
 					if (match.p1 is pid and match.outcome is a.outcome) or (match.p2 is pid and match.outcome is 1 - a.outcome)
@@ -91,6 +90,9 @@ checkAchievements = (pid) !->
 							log App.userName(pid), ': ', a.name
 							player.set 'achievements', a.id, App.time()
 							break
+
+exports.onUpgrade = !->
+	recalculate()
 
 exports.onConfig = (config) !->
 	log 'onConfig', config

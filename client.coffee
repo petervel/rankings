@@ -12,6 +12,7 @@ Obs = require 'obs'
 Form = require 'form'
 Icon = require 'icon'
 Texts = require 'texts'
+Achievements = require 'achievements'
 
 DEFAULT_RANK = 1000
 
@@ -246,16 +247,37 @@ renderRankingsTop = !->
 		Dom.onTap !->
 			Page.nav {0:'rankings'}
 
+renderAchievement = (achievement) !->
+	Icon.render
+		data: achievement.icon
+		size: 24
+		style: margin: '2px'
+		color: achievement.colour
+		onTap: !-> Modal.show achievement.name, achievement.description
+
 renderRankingsPage = !->
-	Db.shared.iterate 'players', (member) !->
-		matchCount = Db.shared.get('players', member.key(), 'matches') ? 0
+	Db.shared.iterate 'players', (player) !->
+		matchCount = player.get('matches') ? 0
+		playerId = player.key()
+		expanded = Obs.create false
 		Ui.item
-			avatar: App.members.get(member.key(), 'avatar')
-			content: App.members.get(member.key(), 'name')
-			sub: tr("%1 match|es", (if matchCount > 50 then "> 50" else matchCount))
-			afterIcon: !-> renderPoints member.get('ranking'), 40
-			onTap: !-> App.showMemberInfo member.key()
-	, (member) -> -(Math.round(1000000*member.get('ranking'))) # apparently, it can't sort floats properly
+			avatar: App.members.get(playerId, 'avatar')
+			content: !->
+				Dom.div !->
+					Dom.text App.members.get(playerId, 'name')
+				Dom.div !->
+					Dom.style fontStyle: 'italic', fontSize: '80%', color: '#ccc'
+					Dom.div !-> Dom.text tr("%1 match|es", (if matchCount > 50 then "> 50" else matchCount))
+					Dom.div !->
+						if player.get('achievements')
+							Dom.style paddingTop: '5px'
+							player.iterate 'achievements', (achievement) !->
+								ach = Achievements.find(achievement.key())
+								renderAchievement ach
+							, (achievement) -> achievement.get()
+			afterIcon: !-> renderPoints player.get('ranking'), 40
+			onTap: !-> expanded.set(not expanded.peek())
+	, (player) -> -(Math.round(1000000*player.get('ranking'))) # apparently, it can't sort floats properly
 
 renderPoints = (points, size, style=null) !->
 	Dom.div !->
