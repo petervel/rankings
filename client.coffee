@@ -294,7 +294,6 @@ renderPoints = (points, size, style=null) !->
 		if style then Dom.style style
 		Dom.text +roundedPoints
 
-
 exports.renderSettings = !->
 	Form.input
 		name: '_title'

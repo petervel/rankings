@@ -6,7 +6,7 @@ Texts = require 'texts'
 Achievements = require 'achievements'
 
 DEFAULT_RANK = 1000
-FACTOR = 32
+FACTOR = 64
 
 exports.client_addMatch = (pid1, pid2, outcome, epic) !->
 	if not outcome in [1, 0.5, 0] # win, draw, loss for p1
@@ -35,7 +35,7 @@ exports.client_addMatch = (pid1, pid2, outcome, epic) !->
 		outcome: outcome
 		epic: epic
 		lowPrio: true
-		path: [matchId]
+		path: []
 		pushText: Texts.getCommentText pid1, pid2, outcome, epic
 
 elo = (p1, p2, outcome) !->
