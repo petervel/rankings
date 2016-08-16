@@ -262,7 +262,6 @@ renderRankingsPage = !->
 	Db.shared.iterate 'players', (player) !->
 		matchCount = player.get('matches') ? 0
 		playerId = player.key()
-		expanded = Obs.create false
 		Ui.item
 			avatar: App.members.get(playerId, 'avatar')
 			content: !->
@@ -279,7 +278,7 @@ renderRankingsPage = !->
 								renderAchievement ach
 							, (achievement) -> achievement.get()
 			afterIcon: !-> renderPoints player.get('ranking'), 40
-			onTap: !-> expanded.set(not expanded.peek())
+			onTap: !-> App.showMemberInfo playerId
 	, (player) -> -(Math.round(1000000*player.get('ranking'))) # apparently, it can't sort floats properly
 
 renderPoints = (points, size, style=null) !->

@@ -67,13 +67,14 @@ recalculate = !->
 
 getMatchesForPlayer = (pid, max) ->
 	matches = []
-	Db.shared.iterate 'matches', ((match) !->
-			#log matches.length, match.get('pid1')
-			if not max? or matches.length < max # if we haven't reached the required amount
-				if not match.get('deleted') # and the match is not deleted
-					if pid in [match.get('p1'), match.get('p2')] # and the player was in this match
-						matches.push match.get()
-		)#, (match) -> 3 #-match.key() # newest matches first
+	Db.shared.iterate 'matches', (match) !->
+		if not match.get('deleted') # and the match is not deleted
+			if pid in [match.get('p1'), match.get('p2')] # and the player was in this match
+				matches.push match.get()
+
+	matches = matches.sort (a,b) -> b.time - a.time
+	if max?
+		matches = matches.slice(0, max)
 	matches
 
 checkAchievements = (pid) !->
@@ -87,9 +88,12 @@ checkAchievements = (pid) !->
 					if (match.p1 is pid and match.outcome is a.outcome) or (match.p2 is pid and match.outcome is 1 - a.outcome)
 						streak++
 						if streak is a.count
-							log App.userName(pid), ': ', a.name
-							completeAchievement pid, a
+							log App.userName(pid), ': ', a.id
+							#completeAchievement pid, a
 							break
+					else
+						# broke their streak
+						break
 
 completeAchievement = (pid, achievement) !->
 	Db.shared.set 'players', pid, 'achievements', achievement.id, App.time()
