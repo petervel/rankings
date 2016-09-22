@@ -123,14 +123,15 @@ renderAddMatch = !->
 renderPlayerSelector = (unavailable, selected) !->
 	chosen = Obs.create()
 	Modal.confirm tr("Select player"), !->
-			App.users.iterate (user) !->
-				return if +user.key() is +unavailable
-				Ui.item
-					avatar: user.get('avatar')
-					content: user.get('name')
-					onTap: !->
-						selected.set user.key()
-						Modal.remove()
+			App.users.iterate ((user) !->
+					return if +user.key() is +unavailable
+					Ui.item
+						avatar: user.get('avatar')
+						content: user.get('name')
+						onTap: !->
+							selected.set user.key()
+							Modal.remove()
+				), (user) -> -Db.shared.get('players', user.key(), 'matches') ? 0
 		, !-> selected.set chosen.get()
 
 renderMatches = !->
