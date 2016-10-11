@@ -13,3 +13,4 @@ exports.find = (id) !->
 
 exports.getNotificationText = (username, achievement) ->
 	tr("%1 has completed an achievement: %2", username, achievement.title)
+

@@ -53,7 +53,7 @@ elo = (p1, p2, outcome) !->
 
 playerActive = (pid) -> +pid in App.memberIds()
 
-MAX_TIME = 30*7*24*60*60 # 30 weeks
+MAX_TIME = 16*7*24*60*60 # 30 weeks
 calculateScores = ->
 	# init all players at default scores
 	rs = {}
@@ -118,10 +118,13 @@ completeAchievement = (pid, achievement) !->
 exports.onLeave = !-> Timer.set 1000, 'onJoin'
 exports.onJoin = recalculate
 
-exports.onUpgrade = !->
-	Db.shared.iterate 'matches', (match) !->
-		Db.shared.set 'matches', +match.key(), 'p2', +match.get('p2')
+exports.continuousRecalculation = !->
 	recalculate()
+	Timer.cancel 'continuousRecalculation'
+	Timer.set (24*60*60*1000), 'continuousRecalculation'
+
+exports.onUpgrade = !->
+	exports.continuousRecalculation()
 
 exports.onConfig = (config) !->
 	log 'onConfig', config
