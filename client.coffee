@@ -117,14 +117,14 @@ renderAddMatch = !->
 			Ui.button tr("Add match"), !->
 				# TODO: input validation
 				if p1.get()? and p2.get()? and result.get()?
-					Server.send 'addMatch', p1.get(), p2.get(), result.get(), (Db.shared.get('config', 'enableEpic') and epic.get())
+					Server.send 'addMatch', +p1.get(), +p2.get(), result.get(), (Db.shared.get('config', 'enableEpic') and epic.get())
 					Page.back()
 
 renderPlayerSelector = (unavailable, selected) !->
 	chosen = Obs.create()
 	Modal.confirm tr("Select player"), !->
 			App.users.iterate ((user) !->
-					return if +user.key() is +unavailable
+					return if +user.key() is +unavailable or not user.get('symbol')
 					Ui.item
 						avatar: user.get('avatar')
 						content: user.get('name')
@@ -211,8 +211,8 @@ renderRankingsTop = !->
 		# make a sorted array of players scores
 		scoreArray = []
 		for u, v of Db.shared.get('players')
-			#t = Db.shared.get('players', u, 'ranking') ? DEFAULT_RANK
-			scoreArray.push [u, v.ranking]
+			if App.users.get(u, 'symbol') # user still active?
+				scoreArray.push [u, v.ranking]
 		scoreArray.sort (a, b) -> b[1] - a[1]
 
 		index = 0
@@ -261,8 +261,10 @@ renderAchievement = (achievement) !->
 
 renderRankingsPage = !->
 	Db.shared.iterate 'players', (player) !->
-		matchCount = player.get('matches') ? 0
 		playerId = player.key()
+
+		return if not App.users.get(playerId, 'symbol') # user no longer active
+		matchCount = player.get('matches') ? 0
 		Ui.item
 			avatar: App.members.get(playerId, 'avatar')
 			content: !->

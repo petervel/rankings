@@ -4,6 +4,7 @@ Comments = require 'comments'
 {tr} = require 'i18n'
 Texts = require 'texts'
 Achievements = require 'achievements'
+Timer = require 'timer'
 
 DEFAULT_RANK = 1000
 FACTOR = 64
@@ -50,46 +51,55 @@ elo = (p1, p2, outcome) !->
 	p1.matches++
 	p2.matches++
 
+playerActive = (pid) -> +pid in App.memberIds()
+
+MAX_TIME = 30*7*24*60*60 # 30 weeks
 calculateScores = ->
 	# init all players at default scores
 	rs = {}
-	for k, v of Db.shared.get('players')
+	for k, v of Db.shared.get('players') when playerActive(k)
 		rs[k] = {ranking: DEFAULT_RANK, matches: 0}
 
 	# go through all matches
-	for id, m of Db.shared.get('matches') when not m.deleted
+	for id, m of Db.shared.get('matches')
+		continue if m.deleted # match has been manually deleted
+		continue if m.time < (App.time() - MAX_TIME) # too long ago
+		continue if not playerActive(m.p1) or not playerActive(m.p2) # one of the players has left
 		elo(rs[m.p1], rs[m.p2], m.outcome)
 	rs
 
 recalculate = !->
+	log 'recalculating scores...'
 	for u, v of calculateScores()
 		Db.shared.merge 'players', u, v
 
 getMatchesForPlayer = (pid, max) ->
 	matches = []
-	Db.shared.iterate 'matches', (match) !->
-		if not match.get('deleted') # and the match is not deleted
-			if pid in [match.get('p1'), match.get('p2')] # and the player was in this match
-				matches.push match.get()
+	for id, match of Db.shared.get 'matches'
+		if not match.deleted # and the match is not deleted
+			if pid is match.p1 or pid is match.p2 # and the player was in this match
+				matches.push match
 
 	matches = matches.sort (a,b) -> b.time - a.time
 	if max?
 		matches = matches.slice(0, max)
+
 	matches
 
 checkAchievements = (pid) !->
 	player = Db.shared.ref 'players', pid
+	matches = getMatchesForPlayer pid
+
 	for a in Achievements.list() when not player?.get('achievements', a.id) # skip the ones the player already has
 		switch a.type
 			when 'streak'
-				matches = getMatchesForPlayer pid
 				streak = 0
 				for match in matches
 					if (match.p1 is pid and match.outcome is a.outcome) or (match.p2 is pid and match.outcome is 1 - a.outcome)
 						streak++
 						if streak is a.count
 							log App.userName(pid), ': ', a.id
-							#completeAchievement pid, a
+							completeAchievement pid, a
 							break
 					else
 						# broke their streak
@@ -104,7 +114,13 @@ completeAchievement = (pid, achievement) !->
 		path: []
 		pushText: Achievements.getNotificationText App.userName(pid), achievement
 
+# recalculate with a delay because currently the user is still a member
+exports.onLeave = !-> Timer.set 1000, 'onJoin'
+exports.onJoin = recalculate
+
 exports.onUpgrade = !->
+	Db.shared.iterate 'matches', (match) !->
+		Db.shared.set 'matches', +match.key(), 'p2', +match.get('p2')
 	recalculate()
 
 exports.onConfig = (config) !->
