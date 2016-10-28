@@ -137,7 +137,11 @@ renderPlayerSelector = (unavailable, selected) !->
 renderMatches = !->
 	Dom.div !->
 		Dom.style height: '20px'
+	max = +Db.shared.count('matches')?.get() ? 0
+	min = Obs.create(max - 50)
+
 	Db.shared.iterate 'matches', (match) !->
+		return if +match.key() < min.get()
 		if match.get 'deleted'
 			Ui.item !->
 				Dom.div !->
@@ -146,6 +150,12 @@ renderMatches = !->
 		else
 			renderMatchDetails match, false
 	, (match) -> -match.get 'time'
+
+	Dom.div !->
+		Dom.style textAlign: 'center'
+		if min.get() > 0
+			Ui.button tr("Meer..."), !->
+				min.set (if min.peek() > 50 then min.peek() - 50 else 0)
 
 renderMatchDetails = (match, expanded) !->
 	if expanded
@@ -263,8 +273,9 @@ renderRankingsPage = !->
 	Db.shared.iterate 'players', (player) !->
 		playerId = player.key()
 
-		return if not App.users.get(playerId, 'symbol') # user no longer active
-		matchCount = player.get('matches') ? 0
+		return unless App.users.get(playerId, 'symbol') # user no longer active
+		return unless player.get('matches')
+		matchCount = player.get('matches')
 		Ui.item
 			avatar: App.members.get(playerId, 'avatar')
 			content: !->
