@@ -138,7 +138,7 @@ renderMatches = !->
 	Dom.div !->
 		Dom.style height: '20px'
 	max = +Db.shared.count('matches')?.get() ? 0
-	min = Obs.create(max - 50)
+	min = Obs.create Math.max (max - 50), 0
 
 	Db.shared.iterate 'matches', (match) !->
 		return if +match.key() < min.get()
@@ -155,7 +155,7 @@ renderMatches = !->
 		Dom.style textAlign: 'center'
 		if min.get() > 0
 			Ui.button tr("Meer..."), !->
-				min.set (if min.peek() > 50 then min.peek() - 50 else 0)
+				min.set Math.max (min.peek() - 50), 0
 
 renderMatchDetails = (match, expanded) !->
 	if expanded
