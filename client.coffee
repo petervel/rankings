@@ -221,7 +221,7 @@ renderRankingsTop = !->
 		# make a sorted array of players scores
 		scoreArray = []
 		for u, v of Db.shared.get('players')
-			if App.users.get(u, 'symbol') # user still active?
+			if App.users.get(u, 'symbol') and v.matches # user still active?
 				scoreArray.push [u, v.ranking]
 		scoreArray.sort (a, b) -> b[1] - a[1]
 
